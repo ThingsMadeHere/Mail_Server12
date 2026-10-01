@@ -1,0 +1,4 @@
+{
+  "resend_webhook_secret": "whsec_XJ04MmtmDex9OLIkphlo16TRWqUqwkYn",
+  "webhook_url": "http://100.115.4.34:3000/webhook/email"
+}

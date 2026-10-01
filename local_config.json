@@ -1,0 +1,6 @@
+{
+  "from_email": "outreach@mchsrobotics.dev",
+  "compression_enabled": true,
+  "compression_level": 6,
+  "use_sendmail": true
+}

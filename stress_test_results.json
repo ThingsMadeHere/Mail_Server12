@@ -1,0 +1,292 @@
+{
+  "timestamp": "2026-09-28 22:49:39",
+  "config": {
+    "num_emails": 20,
+    "concurrency": 3,
+    "api_url": "http://100.115.4.34:3000",
+    "from_email": "outreach@mchsrobotics.dev",
+    "to_email": "carterherrault536@gmail.com"
+  },
+  "results": [
+    {
+      "test_num": 1,
+      "success": true,
+      "status_code": 200,
+      "duration": 1.365100622177124,
+      "timestamp": "2026-09-28 22:49:31",
+      "message_id": "<409d9fa4-4408-46c0-769c-17b139605260@mchsrobotics.dev>",
+      "compression": {
+        "enabled": true,
+        "originalSize": 121,
+        "compressedSize": 121,
+        "compressionRatio": "100.00%"
+      }
+    },
+    {
+      "test_num": 3,
+      "success": true,
+      "status_code": 200,
+      "duration": 1.3712635040283203,
+      "timestamp": "2026-09-28 22:49:31",
+      "message_id": "<a962198a-287d-f241-43db-596e1113f9bb@mchsrobotics.dev>",
+      "compression": {
+        "enabled": true,
+        "originalSize": 121,
+        "compressedSize": 121,
+        "compressionRatio": "100.00%"
+      }
+    },
+    {
+      "test_num": 2,
+      "success": true,
+      "status_code": 200,
+      "duration": 1.3729114532470703,
+      "timestamp": "2026-09-28 22:49:31",
+      "message_id": "<629142f7-da70-9a8b-744c-2a0847e9c44e@mchsrobotics.dev>",
+      "compression": {
+        "enabled": true,
+        "originalSize": 121,
+        "compressedSize": 120,
+        "compressionRatio": "99.17%"
+      }
+    },
+    {
+      "test_num": 6,
+      "success": true,
+      "status_code": 200,
+      "duration": 1.2646081447601318,
+      "timestamp": "2026-09-28 22:49:32",
+      "message_id": "<241e1580-ebb2-24b6-a5c2-768fcfe3720c@mchsrobotics.dev>",
+      "compression": {
+        "enabled": true,
+        "originalSize": 121,
+        "compressedSize": 121,
+        "compressionRatio": "100.00%"
+      }
+    },
+    {
+      "test_num": 4,
+      "success": true,
+      "status_code": 200,
+      "duration": 1.2793281078338623,
+      "timestamp": "2026-09-28 22:49:32",
+      "message_id": "<70c7f8fc-f3c2-5f1e-3a7b-6016cac52ca4@mchsrobotics.dev>",
+      "compression": {
+        "enabled": true,
+        "originalSize": 121,
+        "compressedSize": 121,
+        "compressionRatio": "100.00%"
+      }
+    },
+    {
+      "test_num": 5,
+      "success": true,
+      "status_code": 200,
+      "duration": 1.2973542213439941,
+      "timestamp": "2026-09-28 22:49:32",
+      "message_id": "<038809dc-7483-df93-9730-15c57bf607c6@mchsrobotics.dev>",
+      "compression": {
+        "enabled": true,
+        "originalSize": 121,
+        "compressedSize": 122,
+        "compressionRatio": "100.83%"
+      }
+    },
+    {
+      "test_num": 8,
+      "success": true,
+      "status_code": 200,
+      "duration": 1.2743918895721436,
+      "timestamp": "2026-09-28 22:49:34",
+      "message_id": "<9ea19d61-e96a-9c4f-6276-170172242bbb@mchsrobotics.dev>",
+      "compression": {
+        "enabled": true,
+        "originalSize": 121,
+        "compressedSize": 120,
+        "compressionRatio": "99.17%"
+      }
+    },
+    {
+      "test_num": 7,
+      "success": true,
+      "status_code": 200,
+      "duration": 1.2979280948638916,
+      "timestamp": "2026-09-28 22:49:34",
+      "message_id": "<0918be7c-5eac-db03-f577-eca1059b1087@mchsrobotics.dev>",
+      "compression": {
+        "enabled": true,
+        "originalSize": 121,
+        "compressedSize": 121,
+        "compressionRatio": "100.00%"
+      }
+    },
+    {
+      "test_num": 9,
+      "success": true,
+      "status_code": 200,
+      "duration": 1.2983381748199463,
+      "timestamp": "2026-09-28 22:49:34",
+      "message_id": "<9c58c68c-be43-64e0-7174-d9abac2272f2@mchsrobotics.dev>",
+      "compression": {
+        "enabled": true,
+        "originalSize": 121,
+        "compressedSize": 120,
+        "compressionRatio": "99.17%"
+      }
+    },
+    {
+      "test_num": 10,
+      "success": true,
+      "status_code": 200,
+      "duration": 1.272526502609253,
+      "timestamp": "2026-09-28 22:49:35",
+      "message_id": "<4bd5e5aa-b504-1f12-586e-dc8fb12e24a0@mchsrobotics.dev>",
+      "compression": {
+        "enabled": true,
+        "originalSize": 122,
+        "compressedSize": 122,
+        "compressionRatio": "100.00%"
+      }
+    },
+    {
+      "test_num": 11,
+      "success": true,
+      "status_code": 200,
+      "duration": 1.2634432315826416,
+      "timestamp": "2026-09-28 22:49:35",
+      "message_id": "<83fccbca-d2b1-76ba-d9a8-a134a768b8ba@mchsrobotics.dev>",
+      "compression": {
+        "enabled": true,
+        "originalSize": 122,
+        "compressedSize": 122,
+        "compressionRatio": "100.00%"
+      }
+    },
+    {
+      "test_num": 12,
+      "success": true,
+      "status_code": 200,
+      "duration": 1.2632389068603516,
+      "timestamp": "2026-09-28 22:49:35",
+      "message_id": "<45fee26e-ef81-1fc0-09b4-ea069ee75e05@mchsrobotics.dev>",
+      "compression": {
+        "enabled": true,
+        "originalSize": 122,
+        "compressedSize": 122,
+        "compressionRatio": "100.00%"
+      }
+    },
+    {
+      "test_num": 13,
+      "success": true,
+      "status_code": 200,
+      "duration": 1.2793800830841064,
+      "timestamp": "2026-09-28 22:49:36",
+      "message_id": "<868a7388-3dde-1c7c-1ab9-b512d56cf873@mchsrobotics.dev>",
+      "compression": {
+        "enabled": true,
+        "originalSize": 122,
+        "compressedSize": 122,
+        "compressionRatio": "100.00%"
+      }
+    },
+    {
+      "test_num": 14,
+      "success": true,
+      "status_code": 200,
+      "duration": 1.28165864944458,
+      "timestamp": "2026-09-28 22:49:36",
+      "message_id": "<c3623dfd-d455-ad92-8b6b-ad05cf8e3509@mchsrobotics.dev>",
+      "compression": {
+        "enabled": true,
+        "originalSize": 122,
+        "compressedSize": 122,
+        "compressionRatio": "100.00%"
+      }
+    },
+    {
+      "test_num": 15,
+      "success": true,
+      "status_code": 200,
+      "duration": 1.267087459564209,
+      "timestamp": "2026-09-28 22:49:36",
+      "message_id": "<e388bc37-6093-6fc6-2ba6-0ed435313e20@mchsrobotics.dev>",
+      "compression": {
+        "enabled": true,
+        "originalSize": 122,
+        "compressedSize": 122,
+        "compressionRatio": "100.00%"
+      }
+    },
+    {
+      "test_num": 16,
+      "success": true,
+      "status_code": 200,
+      "duration": 1.3233251571655273,
+      "timestamp": "2026-09-28 22:49:38",
+      "message_id": "<0f4db609-2dad-18e5-4b9e-7bb5c5aff050@mchsrobotics.dev>",
+      "compression": {
+        "enabled": true,
+        "originalSize": 122,
+        "compressedSize": 122,
+        "compressionRatio": "100.00%"
+      }
+    },
+    {
+      "test_num": 17,
+      "success": true,
+      "status_code": 200,
+      "duration": 1.3665144443511963,
+      "timestamp": "2026-09-28 22:49:38",
+      "message_id": "<00fccc21-0554-4176-8f05-bab0e2877333@mchsrobotics.dev>",
+      "compression": {
+        "enabled": true,
+        "originalSize": 122,
+        "compressedSize": 122,
+        "compressionRatio": "100.00%"
+      }
+    },
+    {
+      "test_num": 18,
+      "success": true,
+      "status_code": 200,
+      "duration": 1.3763854503631592,
+      "timestamp": "2026-09-28 22:49:38",
+      "message_id": "<49142df5-2771-bf43-a7e0-ec645fde6c9e@mchsrobotics.dev>",
+      "compression": {
+        "enabled": true,
+        "originalSize": 122,
+        "compressedSize": 122,
+        "compressionRatio": "100.00%"
+      }
+    },
+    {
+      "test_num": 19,
+      "success": true,
+      "status_code": 200,
+      "duration": 1.2862255573272705,
+      "timestamp": "2026-09-28 22:49:39",
+      "message_id": "<fc1b8bc9-ae54-ee5b-9003-09713591ee74@mchsrobotics.dev>",
+      "compression": {
+        "enabled": true,
+        "originalSize": 122,
+        "compressedSize": 122,
+        "compressionRatio": "100.00%"
+      }
+    },
+    {
+      "test_num": 20,
+      "success": true,
+      "status_code": 200,
+      "duration": 1.3023772239685059,
+      "timestamp": "2026-09-28 22:49:39",
+      "message_id": "<2563585c-cd6f-356c-9314-3c269268e96b@mchsrobotics.dev>",
+      "compression": {
+        "enabled": true,
+        "originalSize": 122,
+        "compressedSize": 121,
+        "compressionRatio": "99.18%"
+      }
+    }
+  ]
+}
