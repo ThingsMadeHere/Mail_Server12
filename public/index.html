@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MCHS Robotics - Mail Console</title>
+<style>
+  :root {
+    --bg: #0f1420;
+    --panel: #171e2e;
+    --panel2: #1d2639;
+    --border: #2a3550;
+    --text: #e6ebf5;
+    --muted: #8b98b8;
+    --accent: #4f8cff;
+    --green: #3ecf8e;
+    --red: #ff5c7a;
+    --yellow: #ffc857;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 16px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  header h1 { font-size: 16px; font-weight: 600; }
+  header .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); }
+  header .dot.ok { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  header .dot.bad { background: var(--red); }
+  header .status-text { color: var(--muted); font-size: 12px; }
+  nav { display: flex; gap: 4px; margin-left: auto; }
+  nav button {
+    background: transparent; color: var(--muted); border: 1px solid transparent;
+    padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px;
+  }
+  nav button.active { background: var(--panel2); color: var(--text); border-color: var(--border); }
+  main { flex: 1; overflow: auto; padding: 16px; }
+  section { display: none; max-width: 960px; margin: 0 auto; }
+  section.active { display: block; }
+  .card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px; margin-bottom: 16px;
+  }
+  label { display: block; color: var(--muted); font-size: 12px; margin: 10px 0 4px; }
+  input, textarea, select {
+    width: 100%; background: var(--panel2); border: 1px solid var(--border);
+    color: var(--text); border-radius: 6px; padding: 8px 10px; font-size: 13px;
+    font-family: inherit;
+  }
+  textarea { min-height: 140px; resize: vertical; }
+  .row { display: flex; gap: 12px; }
+  .row > div { flex: 1; }
+  .btn {
+    margin-top: 14px; background: var(--accent); color: #fff; border: none;
+    padding: 9px 18px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600;
+  }
+  .btn:hover { filter: brightness(1.1); }
+  .btn.secondary { background: var(--panel2); color: var(--text); border: 1px solid var(--border); }
+  .result { margin-top: 12px; padding: 10px 12px; border-radius: 6px; font-size: 12px; white-space: pre-wrap; word-break: break-word; display: none; }
+  .result.ok { display: block; background: rgba(62,207,142,.1); border: 1px solid rgba(62,207,142,.4); }
+  .result.err { display: block; background: rgba(255,92,122,.1); border: 1px solid rgba(255,92,122,.4); }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); font-size: 13px; }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+  tr.email-row { cursor: pointer; }
+  tr.email-row:hover td { background: var(--panel2); }
+  .empty { color: var(--muted); text-align: center; padding: 40px 0; }
+  pre.raw {
+    background: var(--panel2); border: 1px solid var(--border); border-radius: 6px;
+    padding: 12px; overflow: auto; max-height: 420px; font-size: 12px; white-space: pre-wrap;
+  }
+  .kv { display: grid; grid-template-columns: 220px 1fr; gap: 6px 12px; font-size: 13px; }
+  .kv .k { color: var(--muted); }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; background: var(--panel2); border: 1px solid var(--border); }
+  .badge.ok { color: var(--green); border-color: rgba(62,207,142,.4); }
+  .badge.warn { color: var(--yellow); border-color: rgba(255,200,87,.4); }
+  code.hint { background: var(--panel2); border: 1px solid var(--border); padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+  h2 { font-size: 15px; margin-bottom: 10px; }
+  .toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+  .toolbar .spacer { flex: 1; }
+  .small { font-size: 12px; color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <span class="dot" id="statusDot"></span>
+  <h1>MCHS Robotics Mail Console</h1>
+  <span class="status-text" id="statusText">checking…</span>
+  <nav>
+    <button data-tab="inbox" class="active">Inbox</button>
+    <button data-tab="send">Send</button>
+    <button data-tab="status">Status</button>
+    <button data-tab="embed">Embed / API</button>
+  </nav>
+</header>
+
+<main>
+  <!-- INBOX -->
+  <section id="tab-inbox" class="active">
+    <div class="card">
+      <div class="toolbar">
+        <strong>Received emails</strong>
+        <span class="badge" id="inboxCount">0</span>
+        <span class="spacer"></span>
+        <button class="btn secondary" style="margin-top:0" onclick="loadInbox()">Refresh</button>
+      </div>
+      <div id="inboxList"></div>
+    </div>
+    <div class="card" id="emailDetailCard" style="display:none">
+      <div class="toolbar">
+        <strong id="emailDetailTitle"></strong>
+        <span class="spacer"></span>
+        <button class="btn secondary" style="margin-top:0" onclick="closeDetail()">Close</button>
+      </div>
+      <div id="emailMeta" class="kv" style="margin-bottom:12px"></div>
+      <pre class="raw" id="emailRaw"></pre>
+    </div>
+  </section>
+
+  <!-- SEND -->
+  <section id="tab-send">
+    <div class="card">
+      <h2>Send an email (via Resend)</h2>
+      <div class="row">
+        <div><label>To</label><input id="sTo" placeholder="someone@example.com" /></div>
+        <div><label>Cc (optional)</label><input id="sCc" placeholder="team@example.com" /></div>
+      </div>
+      <label>Subject</label><input id="sSubject" placeholder="Robotics team outreach" />
+      <label>Body (plain text)</label><textarea id="sBody" placeholder="Hi there, …"></textarea>
+      <label>HTML (optional)</label><textarea id="sHtml" placeholder="<p>Rich HTML version</p>" style="min-height:80px"></textarea>
+      <div class="row">
+        <div><label>From (optional)</label><input id="sFrom" placeholder="outreach@mchsrobotics.dev" /></div>
+        <div><label>Reply-To (optional)</label><input id="sReply" placeholder="outreach@your-name.resend.app" /></div>
+      </div>
+      <button class="btn" onclick="sendEmail()">Send Email</button>
+      <div class="result" id="sendResult"></div>
+    </div>
+  </section>
+
+  <!-- STATUS -->
+  <section id="tab-status">
+    <div class="card">
+      <div class="toolbar">
+        <strong>Server health</strong>
+        <span class="spacer"></span>
+        <button class="btn secondary" style="margin-top:0" onclick="loadStatus()">Refresh</button>
+      </div>
+      <div class="kv" id="healthKv"></div>
+    </div>
+    <div class="card">
+      <h2>Recent webhook deliveries</h2>
+      <div id="deliveryLog"></div>
+    </div>
+  </section>
+
+  <!-- EMBED / API -->
+  <section id="tab-embed">
+    <div class="card">
+      <h2>Embed this console in another site</h2>
+      <p class="small" style="margin-bottom:8px">Paste this anywhere on your existing website — it renders inside an iframe and talks to this same server:</p>
+      <pre class="raw" id="embedCode"></pre>
+    </div>
+    <div class="card">
+      <h2>Custom requests from within the machine</h2>
+      <p class="small" style="margin-bottom:8px">Requests from <code class="hint">localhost</code> are trusted automatically. Remote requests need <code class="hint">Authorization: Bearer &lt;API_TOKEN&gt;</code>.</p>
+      <pre class="raw" id="apiDocs"></pre>
+    </div>
+  </section>
+</main>
+
+<script>
+(function () {
+  const base = location.origin; // works whether iframed or standalone
+  const $ = (id) => document.getElementById(id);
+
+  // ---- token handling (for remote/non-localhost browser access) ----
+  function getToken() { return localStorage.getItem('mail_api_token') || ''; }
+  function authHeaders(extra) {
+    const h = Object.assign({ 'Content-Type': 'application/json' }, extra || {});
+    const t = getToken();
+    if (t) h['Authorization'] = 'Bearer ' + t;
+    return h;
+  }
+
+  async function api(path, opts) {
+    const res = await fetch(base + path, Object.assign({}, opts, { headers: authHeaders(opts && opts.headers) }));
+    let json = null;
+    try { json = await res.json(); } catch (e) { /* non-json */ }
+    if (!res.ok) {
+      if (res.status === 401 && !getToken()) {
+        const t = prompt('This server requires an API token for non-localhost access.\nEnter your API_TOKEN:');
+        if (t) { localStorage.setItem('mail_api_token', t.trim()); return api(path, opts); }
+      }
+      throw new Error((json && (json.error + (json.details ? ': ' + json.details : ''))) || ('HTTP ' + res.status));
+    }
+    return json;
+  }
+
+  // ---- tabs ----
+  document.querySelectorAll('nav button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('main section').forEach(s => s.classList.remove('active'));
+      btn.classList.add('active');
+      $('tab-' + btn.dataset.tab).classList.add('active');
+      if (btn.dataset.tab === 'inbox') loadInbox();
+      if (btn.dataset.tab === 'status') loadStatus();
+    });
+  });
+
+  function showResult(el, ok, text) {
+    el.className = 'result ' + (ok ? 'ok' : 'err');
+    el.textContent = text;
+  }
+
+  // ---- header status dot ----
+  async function ping() {
+    try {
+      const h = await api('/api/health');
+      $('statusDot').className = 'dot ok';
+      $('statusText').textContent = 'online · ' + (h.service || '');
+      return h;
+    } catch (e) {
+      $('statusDot').className = 'dot bad';
+      $('statusText').textContent = 'offline: ' + e.message;
+      return null;
+    }
+  }
+
+  // ---- inbox ----
+  window.loadInbox = async function () {
+    const list = $('inboxList');
+    try {
+      const data = await api('/api/inbox');
+      $('inboxCount').textContent = data.count;
+      if (!data.emails.length) {
+        list.innerHTML = '<div class="empty">No emails received yet.<br><span class="small">Send something to your Resend receiving address — deliveries will appear here.</span></div>';
+        return;
+      }
+      list.innerHTML = '<table><tr><th>Received</th><th>From</th><th>Subject</th><th>To</th><th>Size</th></tr>' +
+        data.emails.map(e =>
+          `<tr class="email-row" data-id="${encodeURIComponent(e.id)}">` +
+          `<td>${new Date(e.receivedAt).toLocaleString()}</td>` +
+          `<td>${escapeHtml(typeof e.from === 'string' ? e.from : (e.from || []).join(', '))}</td>` +
+          `<td>${escapeHtml(e.subject)}</td>` +
+          `<td>${escapeHtml(Array.isArray(e.to) ? e.to.join(', ') : (e.to || ''))}</td>` +
+          `<td>${fmtBytes(e.size)}${e.compressedSize ? ' → ' + fmtBytes(e.compressedSize) : ''}</td>` +
+          `</tr>`).join('') + '</table>';
+      list.querySelectorAll('tr.email-row').forEach(tr =>
+        tr.addEventListener('click', () => openEmail(decodeURIComponent(tr.dataset.id))));
+    } catch (e) {
+      list.innerHTML = '<div class="empty">' + escapeHtml(e.message) + '</div>';
+    }
+  };
+
+  window.openEmail = async function (id) {
+    try {
+      const data = await api('/api/inbox/' + encodeURIComponent(id));
+      $('emailDetailCard').style.display = 'block';
+      $('emailDetailTitle').textContent = data.metadata.subject || '(no subject)';
+      const m = data.metadata;
+      $('emailMeta').innerHTML = [
+        ['From', m.from], ['To', Array.isArray(m.to) ? m.to.join(', ') : m.to],
+        ['Received', m.storedAt], ['Message-ID', m.messageId],
+        ['File', m.filename], ['Compression', m.compressionRatio]
+      ].map(([k, v]) => `<span class="k">${k}</span><span>${escapeHtml(String(v == null ? '' : v))}</span>`).join('');
+      $('emailRaw').textContent = data.content;
+      $('emailDetailCard').scrollIntoView({ behavior: 'smooth' });
+    } catch (e) { alert('Failed to open email: ' + e.message); }
+  };
+
+  window.closeDetail = function () { $('emailDetailCard').style.display = 'none'; };
+
+  // ---- send ----
+  window.sendEmail = async function () {
+    const el = $('sendResult');
+    const payload = {
+      to: $('sTo').value.trim(),
+      subject: $('sSubject').value.trim(),
+      body: $('sBody').value
+    };
+    const cc = $('sCc').value.trim(); if (cc) payload.cc = cc;
+    const html = $('sHtml').value.trim(); if (html) payload.html = html;
+    const from = $('sFrom').value.trim(); if (from) payload.from = from;
+    const reply = $('sReply').value.trim(); if (reply) payload.reply_to = reply;
+    if (!payload.to || !payload.subject || (!payload.body && !html)) {
+      return showResult(el, false, 'Missing required fields: to, subject, and body or html.');
+    }
+    showResult(el, true, 'Sending…');
+    try {
+      const r = await api('/api/send-email', { method: 'POST', body: JSON.stringify(payload) });
+      showResult(el, true, 'Sent! message id: ' + r.messageId + (r.compression ? '\ncompression: ' + r.compression.compressionRatio : ''));
+    } catch (e) { showResult(el, false, 'Failed: ' + e.message); }
+  };
+
+  // ---- status ----
+  window.loadStatus = async function () {
+    try {
+      const s = await api('/api/status');
+      const h = s.health;
+      const badge = (ok, yes, no) => `<span class="badge ${ok ? 'ok' : 'warn'}">${ok ? yes : no}</span>`;
+      $('healthKv').innerHTML = [
+        ['Service', h.service + ' v' + h.version],
+        ['Port', h.port],
+        ['Storage directory', h.storageDir],
+        ['Stored emails', s.inboxCount],
+        ['Resend API key', badge(h.resendApiKeyConfigured, 'configured', 'MISSING')],
+        ['Webhook secret', badge(h.webhookSecretConfigured, 'configured', 'MISSING')],
+        ['Remote auth token', badge(h.apiTokenRequiredForRemote, 'required', 'not set (localhost-only guard)')],
+        ['Server time', h.time]
+      ].map(([k, v]) => `<span class="k">${k}</span><span>${v}</span>`).join('');
+      $('deliveryLog').innerHTML = s.recentDeliveries.length
+        ? '<table><tr><th>Time</th><th>Event</th><th>Result</th><th>File</th></tr>' +
+          s.recentDeliveries.map(d => `<tr><td>${new Date(d.time).toLocaleTimeString()}</td><td>${escapeHtml(d.event || '')}</td><td>${escapeHtml(d.result || '')}</td><td>${escapeHtml(d.filename || '')}</td></tr>`).join('') + '</table>'
+        : '<div class="empty">No webhook deliveries since the server started.</div>';
+    } catch (e) {
+      $('healthKv').innerHTML = '<span class="k">Error</span><span>' + escapeHtml(e.message) + '</span>';
+    }
+  };
+
+  // ---- embed tab ----
+  function fillEmbedDocs() {
+    $('embedCode').textContent =
+`<iframe
+  src="${base}/ui"
+  style="width:100%;height:800px;border:1px solid #ccc;border-radius:8px"
+  title="MCHS Robotics Mail Console"
+  loading="lazy"
+></iframe>`;
+    $('apiDocs').textContent =
+`# All endpoints live on this same origin (${base})
+
+# Send an email
+curl -X POST ${base}/api/send-email \\
+  -H "Content-Type: application/json" \\
+  -d '{"to":"friend@example.com","subject":"Hello","body":"From the robotics team"}'
+
+# List received emails
+curl ${base}/api/inbox
+
+# Read one email (JSON with decoded .eml content; add ?format=raw for just the eml)
+curl ${base}/api/inbox/<id>
+
+# Server status incl. recent webhook deliveries
+curl ${base}/api/status
+
+# Health check (used by Resend too)
+curl ${base}/webhook/health
+
+# From a Python script on this machine:
+#   import requests
+#   requests.post("${base}/api/send-email",
+#                 json={"to": "...", "subject": "...", "body": "..."})
+
+# Remote access: add  -H "Authorization: Bearer <API_TOKEN>"
+# (the browser console will prompt for the token once and remember it)`;
+  }
+
+  // ---- utils ----
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+  function fmtBytes(n) {
+    if (n == null) return '';
+    if (n < 1024) return n + ' B';
+    if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+    return (n / 1048576).toFixed(2) + ' MB';
+  }
+
+  // ---- init ----
+  fillEmbedDocs();
+  ping();
+  loadInbox();
+  setInterval(ping, 30000);
+})();
+</script>
+</body>
+</html>

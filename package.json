@@ -2,10 +2,10 @@
   "name": "email-api-server",
   "version": "1.0.0",
   "description": "Email API server with compression for mchsrobotics.dev",
-  "main": "email_api_server.js",
+  "main": "email_server.js",
   "scripts": {
-    "start": "node email_api_server.js",
-    "dev": "nodemon email_api_server.js"
+    "start": "node email_server.js",
+    "dev": "nodemon email_server.js"
   },
   "dependencies": {
     "express": "^4.18.2",
