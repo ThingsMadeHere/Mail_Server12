@@ -1,0 +1,7 @@
+{
+  "from_email": "outreach@mchsrobotics.dev",
+  "reply_to_email": "",
+  "resend_api_key": "REPLACE_WITH_YOUR_RESEND_API_KEY",
+  "compression_enabled": true,
+  "compression_level": 6
+}
