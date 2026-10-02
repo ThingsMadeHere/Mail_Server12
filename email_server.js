@@ -498,10 +498,11 @@ app.post('/webhook/email', async (req, res) => {
             console.log(`[webhook] email.received from=${d.from} to=${recipients.join(',')} subject="${d.subject}"`);
 
             // Try to fetch full email content from Resend API using email_id
+            // Endpoint: GET /emails/receiving/{email_id}
             let fullEmailContent = buildEmlContent(d);
             if (config.resend_api_key && d.email_id) {
                 try {
-                    const emailResp = await fetch(`https://api.resend.com/emails/${d.email_id}`, {
+                    const emailResp = await fetch(`https://api.resend.com/emails/receiving/${d.email_id}`, {
                         headers: {
                             'Authorization': `Bearer ${config.resend_api_key}`,
                             'Content-Type': 'application/json'
