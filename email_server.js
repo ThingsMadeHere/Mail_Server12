@@ -497,11 +497,11 @@ app.post('/webhook/email', async (req, res) => {
             const recipients = [].concat(d.to || []).concat(d.recipients || []);
             console.log(`[webhook] email.received from=${d.from} to=${recipients.join(',')} subject="${d.subject}"`);
 
-            // Try to fetch full email content from Resend API
+            // Try to fetch full email content from Resend API using email_id
             let fullEmailContent = buildEmlContent(d);
-            if (config.resend_api_key && d.id) {
+            if (config.resend_api_key && d.email_id) {
                 try {
-                    const emailResp = await fetch(`https://api.resend.com/emails/${d.id}`, {
+                    const emailResp = await fetch(`https://api.resend.com/emails/${d.email_id}`, {
                         headers: {
                             'Authorization': `Bearer ${config.resend_api_key}`,
                             'Content-Type': 'application/json'
@@ -510,9 +510,11 @@ app.post('/webhook/email', async (req, res) => {
                     if (emailResp.ok) {
                         const emailData = await emailResp.json();
                         console.log('[webhook] Fetched full email content from Resend API');
-                        // Rebuild EML with the full content
-                        const fullD = emailData.data || {};
+                        // Rebuild EML with the full content (html/text/headers)
+                        const fullD = emailData.data || emailData;
                         fullEmailContent = buildEmlContent(fullD);
+                    } else {
+                        console.warn('[webhook] Failed to fetch email content:', emailResp.status, emailResp.statusText);
                     }
                 } catch (e) {
                     console.warn('[webhook] Failed to fetch full email content:', e.message);
@@ -528,7 +530,8 @@ app.post('/webhook/email', async (req, res) => {
                 subject: d.subject,
                 created_at: d.created_at,
                 messageId: d.message_id,
-                headers: d.headers
+                headers: d.headers,
+                emailId: d.email_id
             });
 
             logDelivery({ event: 'email.received', result: 'stored', filename });
