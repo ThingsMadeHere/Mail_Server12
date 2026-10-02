@@ -149,24 +149,23 @@ function authGuard(req, res, next) {
 // ---------------------------------------------------------------------------
 // Resend (svix-style) webhook signature verification
 // ---------------------------------------------------------------------------
-// Resend signs webhook deliveries with headers like:
-//   resend-signature: v1,<hex-hmac>,t=<unix-seconds>
-// (also sent as svix-signature). The HMAC is SHA-256 over
-// "<message-id>.<raw-body>" keyed with the base64 secret (stripped of the
-// "whsec_" prefix). See https://resend.com/docs/dashboard/webhooks/webhook-signatures
+// Resend signs webhook deliveries using Svix-compatible format:
+// Headers: svix-id, svix-timestamp, svix-signature
+// Signature format: v1,<base64-hmac>
+// Signed content: ${svix_id}.${svix_timestamp}.${raw_body}
+// Secret: whsec_<base64> (decode base64 after stripping prefix)
+// Validity: timestamp must be within 5 minutes
 
-function parseSignatureHeader(headerValue) {
+function parseSvixSignature(headerValue) {
     if (!headerValue) return { signatures: [], timestamp: null };
     let timestamp = null;
     const signatures = [];
     for (const part of String(headerValue).split(' ')) {
         if (part.startsWith('t=')) {
-            timestamp = part.slice(2);
-        } else if (part.includes(',')) {
-            // "v1,<hex>"
-            signatures.push(part.split(',').pop());
-        } else if (/^[a-f0-9]+$/i.test(part)) {
-            signatures.push(part);
+            timestamp = parseInt(part.slice(2), 10);
+        } else if (part.startsWith('v1,')) {
+            // Extract base64 signature after "v1,"
+            signatures.push(part.slice(3));
         }
     }
     return { signatures, timestamp };
@@ -176,51 +175,78 @@ function hmacBase64(secretPayload, keyBytes) {
     return crypto.createHmac('sha256', keyBytes).update(secretPayload, 'utf8').digest('base64');
 }
 
-function safeEqualHex(a, b) {
-    const bufA = Buffer.from(String(a));
-    const bufB = Buffer.from(String(b));
+function safeEqualBase64(a, b) {
+    const bufA = Buffer.from(String(a), 'base64');
+    const bufB = Buffer.from(String(b), 'base64');
     if (bufA.length !== bufB.length) return false;
     return crypto.timingSafeEqual(bufA, bufB);
 }
 
-function verifyWebhookSignature(rawBody, signatureHeader, messageId) {
+function verifyWebhookSignature(rawBody, signatureHeader, svixId, svixTimestamp) {
     if (!WEBHOOK_SECRET) {
         // No secret configured: accept but warn loudly (development mode).
         console.warn('RESEND_WEBHOOK_SECRET not set - accepting webhook WITHOUT signature verification.');
         return true;
     }
-    const { signatures } = parseSignatureHeader(signatureHeader);
+
+    // Parse svix-signature header for signatures and timestamp
+    const { signatures, timestamp: parsedTimestamp } = parseSvixSignature(signatureHeader);
+    
+    // Use svix-timestamp header if signature header doesn't have it
+    const timestamp = parsedTimestamp || svixTimestamp || null;
+    
     if (signatures.length === 0) {
         console.warn('Webhook delivered without a signature header.');
         return false;
     }
 
-    // Secret may arrive as "whsec_<base64>" or as a raw hex string depending
-    // on where it was copied from. Try both payload constructions too.
-    const trimmed = WEBHOOK_SECRET.trim();
-    const candidateKeys = [];
-    if (trimmed.startsWith('whsec_')) {
-        candidateKeys.push(Buffer.from(trimmed.slice('whsec_'.length), 'base64'));
-    } else {
-        try { candidateKeys.push(Buffer.from(trimmed, 'base64')); } catch (e) { /* ignore */ }
-    }
-    candidateKeys.push(Buffer.from(trimmed, 'utf8'));
-    if (/^[a-f0-9]+$/i.test(trimmed)) candidateKeys.push(Buffer.from(trimmed, 'hex'));
-
-    const payloads = [];
-    if (messageId) payloads.push(`${messageId}.${rawBody}`);
-    payloads.push(rawBody);
-
-    for (const key of candidateKeys) {
-        for (const payload of payloads) {
-            const expected = hmacBase64(payload, key);
-            for (const sig of signatures) {
-                if (safeEqualHex(expected, sig) || safeEqualHex(expected, Buffer.from(sig, 'hex').toString('base64'))) {
-                    return true;
-                }
-            }
+    // Validate timestamp is within 5 minutes (600 seconds)
+    if (timestamp) {
+        const now = Math.floor(Date.now() / 1000);
+        const diff = Math.abs(now - timestamp);
+        if (diff > 600) {
+            console.warn(`Webhook timestamp is ${diff} seconds old (max 600).`);
+            return false;
         }
     }
+
+    // Decode the webhook secret: remove whsec_ prefix, then base64 decode
+    const trimmed = WEBHOOK_SECRET.trim();
+    let secretKey;
+    if (trimmed.startsWith('whsec_')) {
+        try {
+            secretKey = Buffer.from(trimmed.slice('whsec_'.length), 'base64');
+        } catch (e) {
+            console.error('Failed to decode webhook secret:', e.message);
+            return false;
+        }
+    } else {
+        // Try base64 directly if no prefix
+        try {
+            secretKey = Buffer.from(trimmed, 'base64');
+        } catch (e) {
+            console.error('Failed to decode webhook secret as base64:', e.message);
+            return false;
+        }
+    }
+
+    // Build signed content: ${svix_id}.${svix_timestamp}.${raw_body}
+    // Use svix-id from header if available, fall back to svixId parameter
+    const id = svixId || '';
+    const ts = timestamp ? String(timestamp) : '';
+    const signedContent = `${id}.${ts}.${rawBody}`;
+
+    // Compute expected signature
+    const expectedSignature = hmacBase64(signedContent, secretKey);
+
+    // Compare using constant-time comparison
+    for (const sig of signatures) {
+        if (safeEqualBase64(expectedSignature, sig)) {
+            return true;
+        }
+    }
+
+    console.warn('Webhook signature verification failed.');
     return false;
 }
 
@@ -424,21 +450,30 @@ app.post('/webhook/email', async (req, res) => {
         // req.rawBody holds the exact bytes sent by Resend (captured by the
         // middleware above before express.json() consumed the stream).
         const rawBody = req.rawBody || JSON.stringify(req.body);
-        const messageId = req.headers['webhook-id'] || req.headers['svix-id'] || '';
+        const svixId = req.headers['svix-id'] || req.headers['webhook-id'] || '';
+        const svixTimestamp = req.headers['svix-timestamp'] || req.headers['webhook-timestamp'] || '';
         const signature =
-            req.headers['resend-signature'] ||
             req.headers['svix-signature'] ||
+            req.headers['resend-signature'] ||
             req.headers['x-resend-signature'] || '';
+
+        // Debug: log the actual signature header if present
+        if (signature) {
+            console.log(`[webhook] Received signature header: ${signature.substring(0, 50)}${signature.length > 50 ? '...' : ''}`);
+        } else {
+            console.log('[webhook] No signature header received');
+        }
+        console.log(`[webhook] Svix-ID: ${svixId}, Timestamp: ${svixTimestamp}`);
 
         payload = JSON.parse(rawBody);
 
         if (payload.type === 'email.received') {
-            if (!verifyWebhookSignature(rawBody, signature, messageId)) {
+            if (!verifyWebhookSignature(rawBody, signature, svixId, svixTimestamp)) {
                 logDelivery({ event: payload.type, result: 'rejected-bad-signature' });
                 console.error('Rejected webhook: invalid signature');
                 return res.status(401).json({ error: 'Invalid signature' });
             }
-        } else if (signature && !verifyWebhookSignature(rawBody, signature, messageId)) {
+        } else if (signature && !verifyWebhookSignature(rawBody, signature, svixId, svixTimestamp)) {
             logDelivery({ event: payload.type || 'unknown', result: 'rejected-bad-signature' });
             console.error('Rejected webhook: invalid signature');
             return res.status(401).json({ error: 'Invalid signature' });
