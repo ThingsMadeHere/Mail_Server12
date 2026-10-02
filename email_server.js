@@ -510,11 +510,14 @@ app.post('/webhook/email', async (req, res) => {
                     if (emailResp.ok) {
                         const emailData = await emailResp.json();
                         console.log('[webhook] Fetched full email content from Resend API');
+                        console.log('[webhook] API response:', JSON.stringify(emailData).substring(0, 500));
                         // Rebuild EML with the full content (html/text/headers)
                         const fullD = emailData.data || emailData;
+                        console.log('[webhook] Full email data:', JSON.stringify(fullD).substring(0, 500));
                         fullEmailContent = buildEmlContent(fullD);
                     } else {
                         console.warn('[webhook] Failed to fetch email content:', emailResp.status, emailResp.statusText);
+                        console.warn('[webhook] Response:', await emailResp.text());
                     }
                 } catch (e) {
                     console.warn('[webhook] Failed to fetch full email content:', e.message);
