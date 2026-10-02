@@ -522,6 +522,10 @@ app.post('/webhook/email', async (req, res) => {
                         
                         // Use the API's html/text if available (they're properly decoded)
                         const fullD = emailData.data || emailData;
+                        console.log('[webhook] fullD.html:', (fullD.html || '').substring(0, 100));
+                        console.log('[webhook] fullD.text:', (fullD.text || '').substring(0, 100));
+                        console.log('[webhook] fullD has html:', !!fullD.html);
+                        console.log('[webhook] fullD has text:', !!fullD.text);
                         
                         if (fullD.html || fullD.text) {
                             fullEmailContent = buildEmlContent(fullD);
