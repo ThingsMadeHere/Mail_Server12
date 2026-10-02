@@ -532,6 +532,7 @@ app.post('/webhook/email', async (req, res) => {
                         // Rebuild EML with the full content (html/text/headers)
                         const fullD = emailData.data || emailData;
                         fullEmailContent = buildEmlContent(fullD);
+                        storedContent = fullEmailContent;  // Also update storedContent
                         
                         console.log('[webhook] HTML length:', fullD.html?.length || 0);
                         console.log('[webhook] Text length:', fullD.text?.length || 0);
