@@ -495,8 +495,12 @@ app.post('/webhook/email', async (req, res) => {
 
         if (payload.type === 'email.received') {
             const d = payload.data || {};
-            const recipients = [].concat(d.to || []).concat(d.recipients || []);
-            console.log(`[webhook] email.received from=${d.from} to=${recipients.join(',')} subject="${d.subject}"`);
+            // Debug: log the actual webhook payload structure
+            console.log('[webhook] Webhook data keys:', Object.keys(d));
+            console.log('[webhook] Has html:', !!d.html);
+            console.log('[webhook] Has text:', !!d.text);
+            console.log('[webhook] Has headers:', !!d.headers);
+            console.log('[webhook] d.html (first 200):', (d.html || '').substring(0, 200));
 
             // Try to fetch full email content from Resend API using email_id
             // Endpoint: GET /emails/receiving/{email_id}
