@@ -495,6 +495,7 @@ app.post('/webhook/email', async (req, res) => {
 
         if (payload.type === 'email.received') {
             const d = payload.data || {};
+            const recipients = [].concat(d.to || []).concat(d.recipients || []);
             // Debug: log the actual webhook payload structure
             console.log('[webhook] Webhook data keys:', Object.keys(d));
             console.log('[webhook] Has html:', !!d.html);
