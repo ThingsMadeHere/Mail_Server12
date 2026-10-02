@@ -500,6 +500,8 @@ app.post('/webhook/email', async (req, res) => {
             // Try to fetch full email content from Resend API using email_id
             // Endpoint: GET /emails/receiving/{email_id}
             let fullEmailContent = buildEmlContent(d);
+            let storedContent = fullEmailContent;
+            
             if (config.resend_api_key && d.email_id) {
                 try {
                     const emailResp = await fetch(`https://api.resend.com/emails/receiving/${d.email_id}`, {
@@ -511,11 +513,22 @@ app.post('/webhook/email', async (req, res) => {
                     if (emailResp.ok) {
                         const emailData = await emailResp.json();
                         console.log('[webhook] Fetched full email content from Resend API');
-                        console.log('[webhook] API response:', JSON.stringify(emailData).substring(0, 500));
+                        
+                        // Check if we have raw download URL
+                        if (emailData.data?.raw?.download_url) {
+                            const rawResp = await fetch(emailData.data.raw.download_url);
+                            if (rawResp.ok) {
+                                storedContent = await rawResp.text();
+                                console.log('[webhook] Downloaded raw .eml file');
+                            }
+                        }
+                        
                         // Rebuild EML with the full content (html/text/headers)
                         const fullD = emailData.data || emailData;
-                        console.log('[webhook] Full email data:', JSON.stringify(fullD).substring(0, 500));
                         fullEmailContent = buildEmlContent(fullD);
+                        
+                        console.log('[webhook] HTML length:', fullD.html?.length || 0);
+                        console.log('[webhook] Text length:', fullD.text?.length || 0);
                     } else {
                         console.warn('[webhook] Failed to fetch email content:', emailResp.status, emailResp.statusText);
                         console.warn('[webhook] Response:', await emailResp.text());
@@ -525,7 +538,7 @@ app.post('/webhook/email', async (req, res) => {
                 }
             }
 
-            const { filename, metadata } = storeReceivedEmail(fullEmailContent, {
+            const { filename, metadata } = storeReceivedEmail(storedContent, {
                 source: 'resend-webhook',
                 webhookEventId: payload.id,
                 from: d.from,
