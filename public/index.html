@@ -87,6 +87,28 @@
   .badge.ok { color: var(--green); border-color: rgba(62,207,142,.4); }
   .badge.warn { color: var(--yellow); border-color: rgba(255,200,87,.4); }
   code.hint { background: var(--panel2); border: 1px solid var(--border); padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+  
+  /* Email body styling */
+  #emailBody { max-height: 600px; overflow: auto; }
+  #emailBody * { box-sizing: border-box; }
+  #emailBody h1 { font-size: 24px; margin: 16px 0; color: var(--text); }
+  #emailBody h2 { font-size: 20px; margin: 14px 0; color: var(--text); }
+  #emailBody h3 { font-size: 16px; margin: 12px 0; color: var(--text); }
+  #emailBody p { margin: 12px 0; line-height: 1.6; color: var(--text); }
+  #emailBody a { color: var(--accent); text-decoration: none; }
+  #emailBody a:hover { text-decoration: underline; }
+  #emailBody ul, #emailBody ol { margin: 12px 20px; color: var(--text); }
+  #emailBody li { margin: 6px 0; }
+  #emailBody blockquote { border-left: 3px solid var(--border); margin: 12px 0; padding-left: 12px; color: var(--muted); }
+  #emailBody pre { background: var(--panel2); padding: 10px; border-radius: 6px; overflow-x: auto; font-size: 12px; }
+  #emailBody code { background: var(--panel2); padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 12px; }
+  #emailBody img { max-width: 100%; height: auto; border-radius: 6px; }
+  #emailBody table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+  #emailBody th, #emailBody td { border: 1px solid var(--border); padding: 8px; text-align: left; }
+  #emailBody th { background: var(--panel2); color: var(--muted); }
+  #emailBody hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+  #emailBody .reply-quote { margin-top: 20px; padding-top: 16px; border-top: 2px solid var(--border); opacity: 0.8; }
+  #emailBody .signature { margin-top: 20px; font-style: italic; opacity: 0.7; }
   h2 { font-size: 15px; margin-bottom: 10px; }
   .toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
   .toolbar .spacer { flex: 1; }
@@ -122,10 +144,20 @@
       <div class="toolbar">
         <strong id="emailDetailTitle"></strong>
         <span class="spacer"></span>
+        <button class="btn secondary" style="margin-top:0" onclick="replyToEmail()">Reply</button>
         <button class="btn secondary" style="margin-top:0" onclick="closeDetail()">Close</button>
       </div>
       <div id="emailMeta" class="kv" style="margin-bottom:12px"></div>
-      <div id="emailBody" class="raw" style="white-space: pre-wrap; max-height: 500px; overflow: auto;"></div>
+      <div id="emailBody" class="raw"></div>
+      
+      <div id="replyForm" style="display:none; margin-top:16px;">
+        <h3>Reply to Email</h3>
+        <div><label>To</label><input id="rTo" readonly /></div>
+        <div><label>Subject</label><input id="rSubject" readonly /></div>
+        <label>Body</label><textarea id="rBody" placeholder="Type your reply..."></textarea>
+        <button class="btn" onclick="submitReply()">Send Reply</button>
+        <div class="result" id="replyResult"></div>
+      </div>
     </div>
   </section>
 
@@ -271,6 +303,12 @@
       $('emailDetailCard').style.display = 'block';
       $('emailDetailTitle').textContent = data.metadata.subject || '(no subject)';
       const m = data.metadata;
+      
+      // Populate reply form
+      const fromAddress = typeof m.from === 'string' ? m.from : (m.from || []).join(', ');
+      $('rTo').value = fromAddress;
+      $('rSubject').value = m.subject || '';
+      
       $('emailMeta').innerHTML = [
         ['From', m.from], ['To', Array.isArray(m.to) ? m.to.join(', ') : m.to],
         ['Received', m.storedAt], ['Message-ID', m.messageId],
@@ -291,7 +329,33 @@
     } catch (e) { alert('Failed to open email: ' + e.message); }
   };
 
-  window.closeDetail = function () { $('emailDetailCard').style.display = 'none'; };
+  window.closeDetail = function () { $('emailDetailCard').style.display = 'none'; $('replyForm').style.display = 'none'; };
+
+  // ---- reply ----
+  window.replyToEmail = function () {
+    $('replyForm').style.display = 'block';
+    $('emailDetailCard').scrollIntoView({ behavior: 'smooth' });
+  };
+
+  window.submitReply = async function () {
+    const el = $('replyResult');
+    const body = $('rBody').value.trim();
+    if (!body) {
+      return showResult(el, false, 'Please enter a reply message.');
+    }
+    showResult(el, true, 'Sending reply...');
+    try {
+      const r = await api('/api/send-email', { method: 'POST', body: JSON.stringify({
+        to: $('rTo').value,
+        subject: 'Re: ' + $('rSubject').value,
+        body: body
+      }) });
+      showResult(el, true, 'Reply sent! message id: ' + r.messageId);
+      // Clear the form
+      $('rBody').value = '';
+      setTimeout(() => showResult(el, false, ''), 3000);
+    } catch (e) { showResult(el, false, 'Failed: ' + e.message); }
+  };
 
   // ---- send ----
   window.sendEmail = async function () {
