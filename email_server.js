@@ -303,8 +303,9 @@ function buildEmlContent(d) {
 
     lines.push('MIME-Version: 1.0');
 
-    const html = d.html ? decodeQuotedPrintable(d.html) : null;
-    const text = d.text ? decodeQuotedPrintable(decodeBase64Maybe(d.text)) : null;
+    // Resend API returns html and text as already-decoded strings
+    const html = d.html || null;
+    const text = d.text || null;
 
     if (html && text) {
         const boundary = '----=_Resend_' + crypto.randomBytes(8).toString('hex');
@@ -313,7 +314,7 @@ function buildEmlContent(d) {
         lines.push(`--${boundary}`);
         lines.push('Content-Type: text/plain; charset="utf-8"');
         lines.push('');
-        lines.push(text || '');
+        lines.push(text);
         lines.push(`--${boundary}`);
         lines.push('Content-Type: text/html; charset="utf-8"');
         lines.push('');
