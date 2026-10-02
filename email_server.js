@@ -520,19 +520,21 @@ app.post('/webhook/email', async (req, res) => {
                         const emailData = await emailResp.json();
                         console.log('[webhook] Fetched full email content from Resend API');
                         
-                        // Check if we have raw download URL
-                        if (emailData.data?.raw?.download_url) {
+                        // Use the API's html/text if available (they're properly decoded)
+                        const fullD = emailData.data || emailData;
+                        
+                        if (fullD.html || fullD.text) {
+                            fullEmailContent = buildEmlContent(fullD);
+                            storedContent = fullEmailContent;
+                            console.log('[webhook] Using API html/text');
+                        } else if (emailData.data?.raw?.download_url) {
+                            // Fall back to raw .eml download if no html/text
                             const rawResp = await fetch(emailData.data.raw.download_url);
                             if (rawResp.ok) {
                                 storedContent = await rawResp.text();
                                 console.log('[webhook] Downloaded raw .eml file');
                             }
                         }
-                        
-                        // Rebuild EML with the full content (html/text/headers)
-                        const fullD = emailData.data || emailData;
-                        fullEmailContent = buildEmlContent(fullD);
-                        storedContent = fullEmailContent;  // Also update storedContent
                         
                         console.log('[webhook] HTML length:', fullD.html?.length || 0);
                         console.log('[webhook] Text length:', fullD.text?.length || 0);
