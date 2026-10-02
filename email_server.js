@@ -407,7 +407,89 @@ function readStoredEmail(id) {
     if (!fs.existsSync(emlPath)) return null;
     let raw = fs.readFileSync(emlPath);
     if (meta.filename.endsWith('.gz')) raw = zlib.gunzipSync(raw);
-    return { metadata: meta, content: raw.toString('utf8') };
+    const emlContent = raw.toString('utf8');
+    const body = extractEmailBody(emlContent);
+    return { metadata: meta, content: body };
+}
+
+// Parse .eml content and extract the HTML or text body
+function extractEmailBody(emlContent) {
+    if (!emlContent) return '';
+    
+    const lines = emlContent.split(/\r?\n/);
+    let inBody = false;
+    let boundary = null;
+    const bodyParts = [];
+    let currentPart = [];
+    
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        
+        // Look for boundary in Content-Type header
+        if (!boundary && line.toLowerCase().startsWith('content-type: multipart')) {
+            const boundaryMatch = line.match(/boundary="([^"]+)"/);
+            if (boundaryMatch) boundary = boundaryMatch[1];
+        }
+        
+        // Check for boundary delimiter
+        if (boundary) {
+            if (line.startsWith('--' + boundary)) {
+                if (inBody && currentPart.length > 0) {
+                    bodyParts.push(currentPart.join('\n'));
+                }
+                inBody = false;
+                currentPart = [];
+                continue;
+            }
+        }
+        
+        // Check for Content-Type header within a part
+        if (line.toLowerCase().startsWith('content-type:')) {
+            inBody = true;
+            currentPart = [line];
+            continue;
+        }
+        
+        // Skip headers, start body content
+        if (inBody && line.trim() === '') {
+            currentPart.push('');
+            continue;
+        }
+        
+        if (inBody) {
+            currentPart.push(line);
+        }
+    }
+    
+    // If no boundary found, return everything after the blank line
+    if (!boundary) {
+        const blankLineIndex = lines.findIndex(l => l.trim() === '');
+        if (blankLineIndex >= 0) {
+            return lines.slice(blankLineIndex + 1).join('\n');
+        }
+        return emlContent;
+    }
+    
+    // Return the HTML part if available, otherwise text part
+    for (const part of bodyParts) {
+        if (part.includes('text/html') || part.includes('Content-Type: text/html')) {
+            const htmlStart = part.indexOf('\n\n') >= 0 ? part.indexOf('\n\n') + 2 : part.indexOf('\n') + 1;
+            const html = part.substring(htmlStart).trim();
+            // Clean up any trailing boundary markers
+            return html.replace(/--\w+$/, '').trim();
+        }
+    }
+    
+    // Fallback to text/plain or first part
+    for (const part of bodyParts) {
+        if (part.includes('text/plain') || part.includes('Content-Type: text/plain')) {
+            const textStart = part.indexOf('\n\n') >= 0 ? part.indexOf('\n\n') + 2 : part.indexOf('\n') + 1;
+            const text = part.substring(textStart).trim();
+            return text;
+        }
+    }
+    
+    return '';
 }
 
 // Simple in-memory log of recent webhook deliveries (for the UI status panel)
