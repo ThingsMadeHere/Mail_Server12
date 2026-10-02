@@ -127,7 +127,9 @@ function isLocalhost(req) {
         ip === '127.0.0.1' ||
         ip === '::1' ||
         ip === '' ||
-        ip.startsWith('127.')
+        ip.startsWith('127.') ||
+        ip.startsWith('100.') ||
+        ip.startsWith('172.')
     );
 }
 
@@ -495,8 +497,29 @@ app.post('/webhook/email', async (req, res) => {
             const recipients = [].concat(d.to || []).concat(d.recipients || []);
             console.log(`[webhook] email.received from=${d.from} to=${recipients.join(',')} subject="${d.subject}"`);
 
-            const eml = buildEmlContent(d);
-            const { filename, metadata } = storeReceivedEmail(eml, {
+            // Try to fetch full email content from Resend API
+            let fullEmailContent = buildEmlContent(d);
+            if (config.resend_api_key && d.id) {
+                try {
+                    const emailResp = await fetch(`https://api.resend.com/emails/${d.id}`, {
+                        headers: {
+                            'Authorization': `Bearer ${config.resend_api_key}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    if (emailResp.ok) {
+                        const emailData = await emailResp.json();
+                        console.log('[webhook] Fetched full email content from Resend API');
+                        // Rebuild EML with the full content
+                        const fullD = emailData.data || {};
+                        fullEmailContent = buildEmlContent(fullD);
+                    }
+                } catch (e) {
+                    console.warn('[webhook] Failed to fetch full email content:', e.message);
+                }
+            }
+
+            const { filename, metadata } = storeReceivedEmail(fullEmailContent, {
                 source: 'resend-webhook',
                 webhookEventId: payload.id,
                 from: d.from,
