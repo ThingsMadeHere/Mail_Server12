@@ -125,7 +125,7 @@
         <button class="btn secondary" style="margin-top:0" onclick="closeDetail()">Close</button>
       </div>
       <div id="emailMeta" class="kv" style="margin-bottom:12px"></div>
-      <pre class="raw" id="emailRaw"></pre>
+      <div id="emailBody" class="raw" style="white-space: pre-wrap; max-height: 500px; overflow: auto;"></div>
     </div>
   </section>
 
@@ -276,7 +276,17 @@
         ['Received', m.storedAt], ['Message-ID', m.messageId],
         ['File', m.filename], ['Compression', m.compressionRatio]
       ].map(([k, v]) => `<span class="k">${k}</span><span>${escapeHtml(String(v == null ? '' : v))}</span>`).join('');
-      $('emailRaw').textContent = data.content;
+      
+      // Render the email body - if it contains HTML tags, use innerHTML
+      const content = data.content || '';
+      const emailBodyEl = $('emailBody');
+      if (content.includes('<') && !content.includes('\r\n')) {
+        // Simple HTML - render as HTML
+        emailBodyEl.innerHTML = content;
+      } else {
+        // Plain text or complex content - escape and show
+        emailBodyEl.textContent = content;
+      }
       $('emailDetailCard').scrollIntoView({ behavior: 'smooth' });
     } catch (e) { alert('Failed to open email: ' + e.message); }
   };
